@@ -1,0 +1,9 @@
+{
+    "require-dev": {
+        "eaglewu/swoole-ide-helper": "dev-master",
+        "swoole/ide-helper": "@dev"
+    },
+    "require": {
+        "voku/simple_html_dom": "^4.7"
+    }
+}
