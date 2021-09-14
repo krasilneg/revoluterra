@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
 
 RUN cd /tmp && git clone https://github.com/swoole/swoole-src.git && \
     cd swoole-src && \
-    git checkout v4.6.7 && \
+    git checkout v4.7.0 && \
     phpize  && \
     ./configure --enable-openssl --enable-swoole-curl --enable-http2 --enable-mysqlnd && \
     make && make install
@@ -37,4 +37,4 @@ ENV PORT=80
 
 EXPOSE 80/tcp
 
-ENTRYPOINT ["php", "/app/index.php"]
+ENTRYPOINT ["php", "-d", "memory_limit=-1", "/app/index.php"]
