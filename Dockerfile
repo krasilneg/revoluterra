@@ -29,4 +29,8 @@ RUN rm /app/composer-setup.php
 RUN cd /app && php composer.phar install
 RUN rm /app/composer.phar
 
+ENV PORT=80
+
+EXPOSE 80/tcp
+
 ENTRYPOINT ["php", "/app/index.php"]

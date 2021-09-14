@@ -13,7 +13,7 @@ use krasilneg\Ya;
 use krasilneg\Benchmark;
 use krasilneg\Cache;
 
-$host = getenv('HOST') ?: '127.0.0.1';
+$host = getenv('HOST');
 $port = getenv('PORT') ?: 80;
 $max = getenv('LIMIT');
 
