@@ -29,6 +29,10 @@ RUN rm /app/composer-setup.php
 RUN cd /app && php composer.phar install
 RUN rm /app/composer.phar
 
+# COPY ./krasilneg /app/krasilneg
+# COPY ./vendor /app/vendor
+# COPY ./index.php /app/index.php
+
 ENV PORT=80
 
 EXPOSE 80/tcp
