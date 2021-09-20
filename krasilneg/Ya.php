@@ -7,12 +7,9 @@ use Swoole\Coroutine\Http\Client;
 class Ya {
   private const PATH = '/search/touch/?service=www.yandex&ui=webmobileapp.yandex&numdoc=50&lr=213&p=0&text=%s';
 
-  private $uri;
-
   private $timeout = 5;
 
-  public function __construct($query, $timeout = null) {
-    $this->uri = \sprintf(self::PATH, \urlencode($query));
+  public function __construct($timeout = null) {
     if ($timeout) $this->timeout = $timeout;
   }
 
@@ -52,12 +49,12 @@ class Ya {
     return $urls;
   }
 
-  public function perform() {
+  public function perform($query) {
     $c = new Client('yandex.ru', null, true);
     $c->set([ 'timeout' => $this->timeout ]);
     $c->setDefer(true);
     try {
-      $c->get($this->uri);
+      $c->get(\sprintf(self::PATH, \urlencode($query)));
       $c->recv(5);
       if ($c->getStatusCode() !== 200) {
         throw new \Exception("Yandex search failed with status {$c->getStatusCode()}");

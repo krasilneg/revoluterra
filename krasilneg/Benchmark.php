@@ -3,6 +3,7 @@ namespace krasilneg;
 
 use Swoole\Coroutine\Http\Client;
 use Swoole\Coroutine\WaitGroup;
+use Swoole\Server;
 
 class Benchmark {
   private $followRedirects = false;
@@ -11,17 +12,14 @@ class Benchmark {
 
   private $defaultHost = null;
 
-  /**
-   * @var krasilneg\Cache
-   */
-  private $cache = null;
+  private $timeout = 30;
 
   public function __construct(array $options = []) {
     extract($options);
     $this->followRedirects = (isset($followRedirects) && $followRedirects) ? $followRedirects : $this->followRedirects;
     $this->reqTimeout = (isset($reqTimeout) && $reqTimeout) ? $reqTimeout : $this->reqTimeout;
     $this->defaultHost = (isset($defaultHost) && $defaultHost) ? $defaultHost : $this->defaultHost;
-    $this->cache = (isset($cache) && ($cache instanceof Cache)) ? $cache : null;
+    $this->timeout = (isset($timeout) && $timeout) ? $timeout : $this->timeout;
   }
 
   private function parseUrl(string $url) {
@@ -70,76 +68,24 @@ class Benchmark {
     return false;
   }
 
-  private function load(array $urls): array {
-    $map = [];
-    if ($this->cache) {
-      $w = new WaitGroup();
-      foreach ($urls as $url) {
-        $w->add();
-        go(function () use ($w, $url, &$map) {
-          $v = $this->cache->get($url);
-          if ($v !== null) {
-            $map[$url] = $v ?: 0;
-          }
-          $w->done();
-        });
-      }
-      $w->wait();
-    }    
-    return $map;
-  }
-
-  private function save(array $map) {
-    if ($this->cache) {
-      $w = new WaitGroup();
-      foreach ($map as $url => $value) {
-        $w->add();
-        go(function () use ($w, $url, $value) {
-          $this->cache->set($url, $value);
-          $w->done();
-        });
-      }
-      $w->wait();
-    }
-  }
-
-  public function perform(array $urls) {
-    $map = $this->load($urls);
-    $alive = [];
-    $urls = \array_filter($urls, function ($url) use (&$map, &$alive) {
-      $res = !isset($map[$url]);
-      if ($res) {
-        $map[$url] = 0;
-        $alive[$url] = true;
-      }
-      return $res;
-    });
+  public function processUrl($url) {
     $w = new WaitGroup();
-    while (!empty($alive)) {
-      $tmp = \array_keys($alive);
-      foreach ($tmp as $url) {
-        $cr = go(function () use ($url, $w, &$map, &$alive) {
-          $w->add();
-          $ok = $this->req($url);
-          if ($ok) {
-            $map[$url]++;
-          } else {
-            unset($alive[$url]);
-          }
-          $w->done();
-        });
-        
-        if (!$cr) {
-          $alive = [];
+    $alive = true;
+    $success = 0;
+    while ($alive) {
+      $cr = go(function () use ($url, $w, &$success, &$alive) {
+        $w->add();
+        $ok = $this->req($url);
+        if ($ok) {
+          $success++;
+        } else {
+          $alive = false;  
         }
-      }
+        $w->done();
+      });
+      if (!$cr) $alive = false;
     }
-    $w->wait(20);
-
-    if (!empty($urls)) {
-      $this->save($map);
-    }
-
-    return $map;
+    $w->wait($this->timeout);
+    return $success;
   }
 }
